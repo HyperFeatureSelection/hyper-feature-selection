@@ -20,7 +20,6 @@ setup(
     install_requires=requirements,
     tests_require=test_requirements,
     packages=find_packages(),
-    install_requires=[],
     classifiers=[
         "Intended Audience :: Science/Research",
         "Intended Audience :: Developers",
