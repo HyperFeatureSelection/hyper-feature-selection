@@ -2,10 +2,12 @@ import numpy as np
 import pandas as pd
 from hyper_feature_selection.utils.decorators import check_empty_dataframe
 
+from sklearn.base import TransformerMixin
 
-class PFI:
 
-    def __init__(self, model, metric, score_lost=0.0):
+class PFI(TransformerMixin):
+
+    def __init__(self, model, metric, score_lost=0.0, seed=42):
         """
         Initializes the PFI class with the specified model, metric, and loss ratio.
 
@@ -22,8 +24,10 @@ class PFI:
         self.perm_importances = {}
         self.keep_columns = []
 
+        np.random.seed(seed=seed)
+
     @check_empty_dataframe
-    def run(self, X, y):
+    def fit(self, X, y=None):
         """Calculates the importance of features by permutation based on the model predictions and a given metric.
 
         Args:
@@ -48,3 +52,17 @@ class PFI:
 
         if not self.keep_columns:
             self.keep_columns = X.columns
+
+
+    def transform(self, X):
+        """
+        Transform the input data by keeping only the specified columns.
+
+        Args:
+            X: Input data to transform.
+
+        Returns:
+            Transformed data with only the specified columns.
+        """
+
+        return X[self.keep_columns]
