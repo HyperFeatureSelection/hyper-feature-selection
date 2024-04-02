@@ -163,4 +163,4 @@ cython_debug/
 #.idea/
 
 # TODO.txt
-doc/TODO.txt
+.doc/TODO.txt
