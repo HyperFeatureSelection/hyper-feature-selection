@@ -37,7 +37,7 @@ class PFI(TransformerMixin):
         Args:
             X : {array-like, sparse matrix} of shape (n_samples, n_features)
             y : array-like of shape (n_samples,) or (n_samples, n_targets)
-            importance: : array-like of shape (n_samples,) including the loss weight for each sample
+            sample_weights: : array-like of shape (n_samples,) including the loss weight for each sample
         """
         y_pred = self.model.predict(X)
         scorer = create_scorer(self.metric)
