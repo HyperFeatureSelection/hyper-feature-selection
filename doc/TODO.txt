@@ -1,7 +1,5 @@
 1. Return importance dataframe in PFI
 2. Adapt PFI for cross validation if passed (cv object as input) --> 1 df for fold
-3. Adapt RFE to fit-transform --> Javi
-3. Use own scorer for RFE
 4. Create structure of HyperFeatureSelection class
 5. Allow a preprocessig pipeline for data in PFI and RFE
 6. Create a log dataframe for PFI-RFE excution
