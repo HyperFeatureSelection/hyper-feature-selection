@@ -3,7 +3,6 @@ import pandas as pd
 import pytest
 import seaborn as sns
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
 
 from hyper_feature_selection.basic.pfi import PFI
 
@@ -28,8 +27,8 @@ def get_titanic_dataset():
 @pytest.mark.parametrize(
     "loss_ratio, expected_keep_columns, seed",
     [
-        (0.0, ['pclass', 'age', 'sibsp', 'parch', 'fare', 'adult_male', 'alone', 'sex_female', 'sex_male', 'embarked_C', 'embarked_Q', 'embarked_S', 'class_First', 'class_Second', 'class_Third', 'who_child', 'who_man', 'who_woman', 'deck_A', 'deck_B', 'deck_C', 'deck_D', 'deck_E', 'deck_F', 'deck_G', 'embark_town_Cherbourg', 'embark_town_Queenstown', 'embark_town_Southampton'] , 0),  # ID: happy-path-no-loss
-        (0.01, ['pclass', 'age', 'sibsp', 'parch', 'fare', 'alone', 'class_First', 'class_Third', 'who_man', 'deck_C', 'deck_D', 'deck_E'], 0),  # ID: happy-path-with-loss
+        (0.0, ['pclass', 'age', 'sibsp', 'parch', 'fare', 'adult_male', 'alone', 'sex_female', 'sex_male', 'embarked_C', 'embarked_S', 'class_First', 'class_Second', 'class_Third', 'who_child', 'who_man', 'who_woman', 'deck_A', 'deck_B', 'deck_C', 'deck_D', 'deck_E', 'deck_F', 'deck_G', 'embark_town_Cherbourg', 'embark_town_Southampton'] , 0),  # ID: happy-path-no-loss
+        (0.01, ['age', 'fare'], 0),  # ID: happy-path-with-loss
         (1.0, [], 0),  # ID: edge-case-max-loss
         (-0.5, ['pclass', 'age', 'sibsp', 'parch', 'fare', 'adult_male', 'alone', 'sex_female', 'sex_male', 'embarked_C', 'embarked_Q', 'embarked_S', 'class_First', 'class_Second', 'class_Third', 'who_child', 'who_man', 'who_woman', 'deck_A', 'deck_B', 'deck_C', 'deck_D', 'deck_E', 'deck_F', 'deck_G', 'embark_town_Cherbourg', 'embark_town_Queenstown', 'embark_town_Southampton'] , 0),  # ID: edge-case-negative-loss
     ],
@@ -46,7 +45,7 @@ def test_run(loss_ratio, expected_keep_columns, seed):
     rf_classifier = RandomForestClassifier(n_estimators=100, random_state=seed)
     rf_classifier.fit(X,y)
 
-    pfi = PFI(rf_classifier, accuracy_score, loss_ratio, seed=seed)
+    pfi = PFI(rf_classifier, score_lost=loss_ratio, seed=seed)
     pfi.fit(X, y)
 
     # Assert
