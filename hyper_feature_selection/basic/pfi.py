@@ -1,25 +1,48 @@
 import numpy as np
 import pandas as pd
-from sklearn.base import clone
+from sklearn.base import TransformerMixin, clone
+
 from hyper_feature_selection.utils.decorators import check_empty_dataframe
 from hyper_feature_selection.utils.scorers import create_scorer
 
 
-from sklearn.base import TransformerMixin
-
-
 class PFI(TransformerMixin):
+    """
+    PFI (Permutation Feature Importance) object for calculating feature importances.
 
-    def __init__(self, model, metric, score_lost=0.0, n_permutations=5, cross_validation=None, seed=42):
+    - `__init__`: Initializes the PFI object with specified parameters.
+    - `fit`: Fits the PFI object to the provided data.
+    - `_fit`: Fits the PFI object to the provided data.
+    - `transform`: Transforms input features by keeping only important columns.
+    - `get_importance`: Returns the feature importances calculated by the PFI object.
+    """
+
+    def __init__(
+        self,
+        model,
+        metric="roc_auc",
+        score_lost=0.0,
+        n_permutations=5,
+        cross_validation=None,
+        sample_weights=None,
+        direction="maximize",
+        seed=42,
+    ):
         """
-        Initializes the PFI class with the specified model, metric, and loss ratio.
+        Initializes the object with specified parameters.
 
         Args:
-            model: The machine learning model to use for feature selection.
-            metric: The evaluation metric to use for feature importance calculation.
-            n_permutations: The number of permutations to calculate feature importance.
-            score_lost: The ratio of loss to apply during feature selection (default is 0.0).
+            model: The machine learning model for which feature importance will be calculated.
+            metric: The metric used to evaluate the model performance (default is 'roc_auc').
+            score_lost: The threshold for score loss to consider a feature important (default is 0.0).
+            n_permutations: The number of permutations to generate (default is 5).
+            cross_validation: The cross-validation strategy to use (default is None).
+            sample_weights: The weights for each sample (default is None).
+            direction: The direction to optimize for, either 'maximize' or 'minimize' (default is 'maximize').
+            seed: The random seed for reproducibility (default is 42).
 
+        Returns:
+            None
         """
         np.random.seed(seed=seed)
 
@@ -30,15 +53,20 @@ class PFI(TransformerMixin):
         self.perm_importances = {}
         self.keep_columns = []
         self.cross_validation = cross_validation
+        self.sample_weights = sample_weights
+        self.direction = direction
 
     @check_empty_dataframe
-    def fit(self, X, y, sample_weights=None):
-        """Calculates the importance of features by permutation based on the model predictions and a given metric.
+    def fit(self, X, y):
+        """
+        Fits the PFI (Permutation Feature Importance) object to the provided data.
 
         Args:
-            X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            y : array-like of shape (n_samples,) or (n_samples, n_targets)
-            sample_weights: : array-like of shape (n_samples,) including the loss weight for each sample
+            X: The input features for training.
+            y: The target variable for training.
+
+        Returns:
+            self
         """
         cloned_classifier = clone(self.model)
 
@@ -51,13 +79,13 @@ class PFI(TransformerMixin):
 
                 cloned_classifier.fit(X_train, y_train)
 
-                self._fit(cloned_classifier, X_test, y_test, sample_weights)
+                self._fit(cloned_classifier, X_test, y_test, self.sample_weights)
         else:
             cloned_classifier.fit(X, y)
-            self._fit(cloned_classifier, X, y, sample_weights)
+            self._fit(cloned_classifier, X, y, self.sample_weights)
 
         for col, scores in self.perm_importances.items():
-            if (sum(scores) / len(scores)) >= self.score_lost:
+            if np.mean(scores) >= self.score_lost:
                 self.keep_columns.append(col)
 
         # TODO: Check if this is necesary
@@ -67,13 +95,24 @@ class PFI(TransformerMixin):
         return self
 
     def _fit(self, model, X, y, sample_weights=None):
-        y_pred = model.predict(X)
-        scorer = create_scorer(self.metric)
+        """
+        Fits the PFI (Permutation Feature Importance) object to the provided data.
+
+        Args:
+            model: The machine learning model used for prediction.
+            X: The input features for training.
+            y: The target variable for training.
+            sample_weights: The weights for each sample (default is None).
+
+        Returns:
+            None
+        """
+        scorer = create_scorer(self.metric, self.direction)
         metric_before = scorer(
             X=X,
             y_true=y,
-            model=self.model,
-            sample_weights=sample_weights
+            estimator=model,
+            # sample_weights=sample_weights
         )
 
         for column in X.columns:
@@ -82,44 +121,38 @@ class PFI(TransformerMixin):
                 X_perm = X.copy()
 
                 X_perm[column] = np.random.permutation(X_perm[column].values)  # type: ignore
-                y_pred_perm = self.model.predict(X_perm)
 
                 metric_after = scorer(
                     X=X_perm,
-                    y_true=y_pred_perm,
-                    model=self.model,
-                    sample_weights=sample_weights
+                    y_true=y,
+                    estimator=model,
+                    # sample_weights=sample_weights,
                 )
                 perm_importance = metric_before - metric_after
+                perm_importances.append(perm_importance)
 
-                if column in self.perm_importances:
-                    self.perm_importances[column].append(perm_importance)
-                else:
-                    perm_importances.append(metric_before - metric_after)
-            
-            self.perm_importances[column] = np.mean(perm_importances)
-
-            if self.perm_importances[column] > self.score_lost:
-                self.keep_columns.append(column)
-
-        if not self.keep_columns:
-            self.keep_columns = X.columns
-
+            self.perm_importances[column] = perm_importances
 
     def transform(self, X):
         """
-        Transform the input data by keeping only the specified columns.
+        Transforms the input features by keeping only the columns identified as important by the PFI (Permutation Feature Importance) object.
 
         Args:
-            X: Input data to transform.
+            X: The input features to be transformed.
 
         Returns:
-            Transformed data with only the specified columns.
+            DataFrame: Transformed DataFrame with only the important columns.
         """
 
         return X[self.keep_columns]
 
     def get_importance(self):
+        """
+        Returns the feature importances calculated by the PFI (Permutation Feature Importance) object.
+
+        Returns:
+            DataFrame: A DataFrame containing the feature importances.
+        """
         return pd.DataFrame.from_dict(
             self.perm_importances, orient="index", columns=["score"]
         )
