@@ -52,11 +52,14 @@ class PFI(TransformerMixin):
             self._fit(cloned_classifier, X, y)
 
         for col, scores in self.perm_importances.items():
-            if (sum(scores) / len(scores)) > self.score_lost:
+            print(col, (sum(scores) / len(scores)), self.score_lost)
+            if (sum(scores) / len(scores)) >= self.score_lost:
+                print('IN')
                 self.keep_columns.append(col)
 
-        if not self.keep_columns:
-            self.keep_columns = X.columns
+        # TODO: Check if this is necesary
+        # if not self.keep_columns:
+        #     self.keep_columns = X.columns
 
         return self
 
