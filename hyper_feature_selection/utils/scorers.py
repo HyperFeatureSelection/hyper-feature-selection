@@ -29,17 +29,20 @@ def create_scorer(metric, direction):
         if metric not in list(_SCORERS.keys()):
             raise ValueError(f"{metric} is not a valid sklearn metric name.")
         return make_scorer(
-            get_scorer(metric)._score_func, 
-            greater_is_better=direction=="maximize",
-            response_method=_SCORERS[metric]._response_method
+            get_scorer(metric)._score_func,
+            greater_is_better=direction == "maximize",
+            response_method=_SCORERS[metric]._response_method,
         )
     elif callable(metric):
+        print("call")
         params = inspect.signature(metric).parameters
-        if any(param not in params for param in ["X", "y_true", "model", "sample_weights"]):
-            raise ValueError("Metric callable must have 'X', 'y_true', 'sample_weights' and 'model' as parameters.")
+        if any(
+            param not in params for param in ["X", "y_true", "model", "sample_weights"]
+        ):
+            raise ValueError(
+                "Metric callable must have 'X', 'y_true', 'sample_weights' and 'model' as parameters."
+            )
         return metric
 
     else:
         raise TypeError("Metric must be either a string or a callable.")
-
-
