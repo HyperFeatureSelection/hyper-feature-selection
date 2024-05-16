@@ -12,7 +12,7 @@ class PFI(TransformerMixin):
 
     - `__init__`: Initializes the PFI object with specified parameters.
     - `fit`: Fits the PFI object to the provided data.
-    - `_fit`: Fits the PFI object to the provided data.
+    - `_computer_importance`: Fits the PFI object to the provided data.
     - `transform`: Transforms input features by keeping only important columns.
     - `get_importance`: Returns the feature importances calculated by the PFI object.
     """
@@ -79,10 +79,10 @@ class PFI(TransformerMixin):
 
                 cloned_classifier.fit(X_train, y_train)
 
-                self._fit(cloned_classifier, X_test, y_test, self.sample_weights)
+                self._computer_importance(cloned_classifier, X_test, y_test, self.sample_weights)
         else:
             cloned_classifier.fit(X, y)
-            self._fit(cloned_classifier, X, y, self.sample_weights)
+            self._computer_importance(cloned_classifier, X, y, self.sample_weights)
 
         for col, scores in self.perm_importances.items():
             if np.mean(scores) >= self.score_lost:
@@ -94,7 +94,7 @@ class PFI(TransformerMixin):
 
         return self
 
-    def _fit(self, model, X, y, sample_weights=None):
+    def _computer_importance(self, model, X, y, sample_weights=None):
         """
         Fits the PFI (Permutation Feature Importance) object to the provided data.
 
