@@ -3,7 +3,7 @@ from sklearn.metrics._scorer import _SCORERS
 import inspect
 
 
-def create_scorer(metric, direction):
+def create_scorer(metric, direction=""):
     """
     Create a custom scorer based on the provided metric, direction, and response method.
 
@@ -21,7 +21,9 @@ def create_scorer(metric, direction):
         TypeError: If metric is neither a string nor a callable.
     """
 
-    if direction not in ["maximize", "minimize"]:
+    if direction == "":
+        direction = "maximize"
+    elif direction not in ["maximize", "minimize"]:
         raise ValueError("direction must be either 'maximize' or 'minimize'")
 
     # If metric is a string, attempt to create a scorer based on sklearn metric names
@@ -34,7 +36,6 @@ def create_scorer(metric, direction):
             response_method=_SCORERS[metric]._response_method,
         )
     elif callable(metric):
-        print("call")
         params = inspect.signature(metric).parameters
         if any(
             param not in params for param in ["X", "y_true", "model", "sample_weights"]
