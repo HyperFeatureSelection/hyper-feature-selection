@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import random
-from sklearn.base import TransformerMixin
+from sklearn.base import TransformerMixin, clone
 from sklearn.model_selection import cross_validate
 from hyper_feature_selection.utils.decorators import check_empty_dataframe
 from hyper_feature_selection.utils.scorers import create_scorer
@@ -15,7 +15,7 @@ class SFE(TransformerMixin):
         model,
         metric: str,
         direction: str,
-        cv,
+        cv=None,
         candidates=None,
         num_rounds: int=10,
         drop_perc: float=0.5,
@@ -86,10 +86,12 @@ class SFE(TransformerMixin):
             The fitted RFE object.
         """
         fit_params = {} if fit_params is None else fit_params
+        cloned_classifier = clone(self.model)
+
         candidates = list(X.columns) if self.candidates is None else self.candidates
         scorer = create_scorer(self.metric, self.direction)
         cv_info_baseline = cross_validate(
-            estimator=reset_estimator(self.model),
+            estimator=cloned_classifier,
             X=X,
             y=y,
             cv=self.cv,
@@ -101,6 +103,7 @@ class SFE(TransformerMixin):
         round_iter = 0
         diff_scores = []
         candidate_subsets = []
+        # print(base_score)
 
         while (not improvement) and (round_iter < self.num_rounds):
             drop_candidates = self.random_subset(
@@ -108,7 +111,7 @@ class SFE(TransformerMixin):
             )
             X_tmp = X.drop(columns=drop_candidates)
             cv_info_iter = cross_validate(
-                estimator=reset_estimator(self.model),
+                estimator=cloned_classifier,
                 X=X_tmp,
                 y=y,
                 cv=self.cv,
@@ -121,7 +124,7 @@ class SFE(TransformerMixin):
             candidate_subsets.append(drop_candidates)
             improvement = diff_score >= self.score_loss_threshold
             round_iter += 1
-            print(diff_score)
+            # print(mean_val_score, round_iter, drop_candidates)
 
         if improvement:
             self.worst_features = drop_candidates
