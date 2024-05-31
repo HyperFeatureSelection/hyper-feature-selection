@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
-import random
 from collections import OrderedDict
 from sklearn.base import TransformerMixin
-from sklearn.model_selection import cross_validate
+from utils.logger_config import  configure_logger
 from hyper_feature_selection.basic.pfi import PFI
 from hyper_feature_selection.basic.sfe import SFE
 
@@ -15,12 +14,13 @@ class HFS(TransformerMixin):
         model,
         metric: str,
         direction: str = "",
-        n_permutations=5,
+        n_permutations: int =5,
         cv=None,
         prune=1,
         score_lost=0.1,
         iter_drop_perc=0.4,
-        min_columns=0,
+        min_column: int = 0,
+        verbose: int = 1,
         seed: int = 42,
     ):
         self.model = model
@@ -35,6 +35,7 @@ class HFS(TransformerMixin):
         self.min_columns = 1
         self.seed = seed
         self.keep_columns = []
+        self.logger = configure_logger(self.__class__.__name__, verbose, "hfs.log")
 
     def fit(self, X, y):
         self.selected_features = list(X.columns)
