@@ -128,7 +128,10 @@ class PFI(TransformerMixin):
                     estimator=model,
                     # sample_weights=sample_weights,
                 )
-                perm_importance = metric_before - metric_after
+                if self.direction == "maximize":
+                    perm_importance = metric_before - metric_after
+                elif self.direction == "minimize":
+                    perm_importance = metric_after - metric_before
                 perm_importances.append(perm_importance)
 
             self.perm_importances[column] = perm_importances
