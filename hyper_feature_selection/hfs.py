@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from collections import OrderedDict
 from sklearn.base import TransformerMixin
-from utils.logger_config import  configure_logger
+from hyper_feature_selection.utils.logger_config import configure_logger
 from hyper_feature_selection.basic.pfi import PFI
 from hyper_feature_selection.basic.sfe import SFE
 
@@ -20,6 +20,7 @@ class HFS(TransformerMixin):
         score_lost=0.1,
         iter_drop_perc=0.4,
         min_column: int = 0,
+        force_columns = [],
         verbose: int = 1,
         seed: int = 42,
     ):
@@ -34,13 +35,17 @@ class HFS(TransformerMixin):
         self.iter_drop_perc = iter_drop_perc
         self.min_columns = 1
         self.seed = seed
-        self.keep_columns = []
+        self.keep_columns = force_columns
         self.logger = configure_logger(self.__class__.__name__, verbose, "hfs.log")
+        self.history = pd.DataFrame(
+            columns=["iteration", "features_removed", "score", "sfe_rounds"]
+        )
 
     def fit(self, X, y):
         self.selected_features = list(X.columns)
         X_hfs = X.copy()
-        while self.min_columns < self.selected_features:
+        iter_hfs = 0
+        while self.min_columns < len(self.selected_features):
             pfi = PFI(
                 model=self.model,
                 metric=self.metric,
@@ -64,15 +69,12 @@ class HFS(TransformerMixin):
                 if (
                     (lost_score <= self.score_lost)
                     and (len(candidates) <= len(X_hfs.columns) * self.prune)
-                    and (len(candidates) < self.min_columns)
                 ):
                     candidates.append(column)
-                    lost_score += lost
                 else:
                     break
-
-            print(len(candidates))
-
+            
+            print(candidates)
             sfe = SFE(
                 self.model,
                 metric=self.metric,
@@ -86,7 +88,55 @@ class HFS(TransformerMixin):
             sfe.fit(X_hfs, y)
             self.selected_features = list(set(X_hfs.columns) - set(sfe.worst_features))
             X_hfs = X_hfs.drop(columns=sfe.worst_features)
+            iter_hfs += 1
+            self.logger.info(
+                f"Iteration: {iter_hfs} - " 
+                f"Selected features: {len(self.selected_features)} - "
+                f"Removed features: {len(sfe.worst_features)} - "
+                f"Metric improvement: {sfe.score_improvemt:.4f} - "
+                f"SFE rounds: {sfe.round_iter}." 
+            )
+            iter_data = {
+                "iteration": iter_hfs,
+                "features_removed": sfe.worst_features,
+                "score": sfe.val_score,
+                "sfe_rounds": sfe.round_iter
+            }
+            if self.history.shape[0] == 0:
+                self.history = pd.DataFrame([iter_data]).copy()
+            else:
+                self.history = pd.concat([self.history, pd.DataFrame([iter_data])], ignore_index=True)
         return self
 
-    def transform(self):
-        pass
+    def transform(
+            self, 
+            X, 
+            max_score_loss=1,
+        ):
+        features = list(X.columns)
+
+        # Selection
+        best_score_limit = (
+            self.history["score"].max() - max_score_loss if self.direction== "maximize" else self.history["score"].min() + max_score_loss
+        )
+        filter_condition = (
+            self.history["score"] >= best_score_limit if self.direction== "maximize" else self.history["score"] <= best_score_limit
+        )
+        history_best_rounds = self.history[(filter_condition) & (~self.history["score"].isnull())]
+        best_round = history_best_rounds["iteration"].max()
+        feature_remove = list(
+            self.history.loc[self.history["iteration"] <= best_round, "features_removed"]
+        )
+
+        self.feature_remove = [
+            c for sub_list in feature_remove for c in sub_list
+        ]
+        self.features_selected = [c for c in features if c not in self.feature_remove]
+        keep_cols_add = [c for c in self.keep_columns if c not in self.features_selected]
+        self.features_selected += keep_cols_add
+
+        self.logger.info(
+            f"Features selected: {len(self.features_selected)}: {self.features_selected}" 
+        )
+
+        return X[self.features_selected]
