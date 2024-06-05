@@ -77,9 +77,7 @@ class HFS(TransformerMixin):
         self.seed = seed
         self.keep_columns = force_columns
         self.logger = configure_logger(self.__class__.__name__, verbose, "hfs.log")
-        self.history = pd.DataFrame(
-            columns=["iteration", "features_removed", "score", "sfe_rounds"]
-        )
+        self.history = pd.DataFrame(columns=["iteration", "features_removed", "score", "sfe_rounds"])
 
     def fit(self, X, y):
         """
@@ -108,19 +106,12 @@ class HFS(TransformerMixin):
             )
             pfi.fit(X_hfs, y)
 
-            perm_importances = {
-                col: np.mean(lost_score)
-                for col, lost_score in pfi.perm_importances.items()
-            }
-            perm_importances = OrderedDict(
-                sorted(perm_importances.items(), key=lambda x: x[1])
-            )
+            perm_importances = {col: np.mean(lost_score) for col, lost_score in pfi.perm_importances.items()}
+            perm_importances = OrderedDict(sorted(perm_importances.items(), key=lambda x: x[1]))
             lost_score = 0
             candidates = []
             for column, lost in perm_importances.items():
-                if (lost_score <= self.score_lost) and (
-                    len(candidates) <= len(X_hfs.columns) * self.prune
-                ):
+                if (lost_score <= self.score_lost) and (len(candidates) <= len(X_hfs.columns) * self.prune):
                     candidates.append(column)
 
             sfe = SFE(
@@ -153,9 +144,7 @@ class HFS(TransformerMixin):
             if self.history.shape[0] == 0:
                 self.history = pd.DataFrame([iter_data]).copy()
             else:
-                self.history = pd.concat(
-                    [self.history, pd.DataFrame([iter_data])], ignore_index=True
-                )
+                self.history = pd.concat([self.history, pd.DataFrame([iter_data])], ignore_index=True)
         return self
 
     def transform(
@@ -177,32 +166,18 @@ class HFS(TransformerMixin):
 
         # Selection
         best_score_limit = (
-            self.history["score"].max() - max_score_loss
-            if self.direction == "maximize"
-            else self.history["score"].min() + max_score_loss
+            self.history["score"].max() - max_score_loss if self.direction == "maximize" else self.history["score"].min() + max_score_loss
         )
-        filter_condition = (
-            self.history["score"] >= best_score_limit
-            if self.direction == "maximize"
-            else self.history["score"] <= best_score_limit
-        )
-        history_best_rounds = self.history[
-            (filter_condition) & (~self.history["score"].isnull())
-        ]
+        filter_condition = self.history["score"] >= best_score_limit if self.direction == "maximize" else self.history["score"] <= best_score_limit
+        history_best_rounds = self.history[(filter_condition) & (~self.history["score"].isnull())]
         best_round = history_best_rounds["iteration"].max()
-        feature_remove = self.history.loc[
-            self.history["iteration"] <= best_round, "features_removed"
-        ].tolist()  # type: ignore
+        feature_remove = self.history.loc[self.history["iteration"] <= best_round, "features_removed"].tolist()  # type: ignore
 
         self.feature_remove = [c for sub_list in feature_remove for c in sub_list]
         self.features_selected = [c for c in features if c not in self.feature_remove]
-        keep_cols_add = [
-            c for c in self.keep_columns if c not in self.features_selected
-        ]
+        keep_cols_add = [c for c in self.keep_columns if c not in self.features_selected]
         self.features_selected += keep_cols_add
 
-        self.logger.info(
-            f"Features selected: {len(self.features_selected)}: {self.features_selected}"
-        )
+        self.logger.info(f"Features selected: {len(self.features_selected)}: {self.features_selected}")
 
         return X[self.features_selected]
