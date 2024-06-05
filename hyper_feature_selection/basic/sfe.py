@@ -124,7 +124,6 @@ class SFE(TransformerMixin):
             drop_candidates = self.random_subset(
                 candidates, candidate_subsets, round(self.drop_perc*len(candidates)), self.seed+self.round_iter
             )
-            print(self.round_iter, drop_candidates)
             X_tmp = X.drop(columns=drop_candidates)
             cv_info_iter = cross_validate(
                 estimator=cloned_classifier,

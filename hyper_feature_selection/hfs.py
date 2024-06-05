@@ -71,10 +71,8 @@ class HFS(TransformerMixin):
                     and (len(candidates) <= len(X_hfs.columns) * self.prune)
                 ):
                     candidates.append(column)
-                else:
-                    break
             
-            print(candidates)
+            # print(candidates)
             sfe = SFE(
                 self.model,
                 metric=self.metric,
@@ -111,7 +109,7 @@ class HFS(TransformerMixin):
     def transform(
             self, 
             X, 
-            max_score_loss=1,
+            max_score_loss=0.01,
         ):
         features = list(X.columns)
 
