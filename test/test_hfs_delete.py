@@ -34,7 +34,7 @@ selector = HFS(
     prune=0.5,
     score_lost=0.001,
     iter_drop_perc=0.5,
-    min_column=10,
+    min_columns=1,
     verbose=1,
     seed=42,
 )
