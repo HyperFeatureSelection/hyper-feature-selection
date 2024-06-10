@@ -73,9 +73,9 @@ class PFI(TransformerMixin):
         if self.cross_validation:
             for train_index, test_index in self.cross_validation.split(X):
                 X_train = X.iloc[train_index]
-                y_train = y[train_index]
+                y_train = y.iloc[train_index]
                 X_test = X.iloc[test_index]
-                y_test = y[test_index]
+                y_test = y.iloc[test_index]
 
                 cloned_classifier.fit(X_train, y_train)
 
@@ -128,7 +128,10 @@ class PFI(TransformerMixin):
                     estimator=model,
                     # sample_weights=sample_weights,
                 )
-                perm_importance = metric_before - metric_after
+                if self.direction == "maximize":
+                    perm_importance = metric_before - metric_after
+                elif self.direction == "minimize":
+                    perm_importance = metric_after - metric_before
                 perm_importances.append(perm_importance)
 
             self.perm_importances[column] = perm_importances
