@@ -6,7 +6,7 @@ class Dataset:
 
     def __init__(self):
         self.source = {
-            # "seaborn": seaborn_data.DataSNS(),
+            "seaborn": seaborn_data.DataSNS(),
             "skleago": sklego_data.DataSKLego(),
         }
 
