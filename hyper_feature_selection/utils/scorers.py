@@ -30,10 +30,12 @@ def create_scorer(metric, direction=""):
     if isinstance(metric, str):
         if metric not in list(_SCORERS.keys()):
             raise ValueError(f"{metric} is not a valid sklearn metric name.")
+
         return make_scorer(
             get_scorer(metric)._score_func,
             greater_is_better=direction == "maximize",
             response_method=_SCORERS[metric]._response_method,
+            **get_scorer(metric)._kwargs,
         )
     elif callable(metric):
         params = inspect.signature(metric).parameters
