@@ -12,20 +12,18 @@ with open(os.path.join(here, "requirements_dev.txt")) as f:
 
 
 setup(
-    name='hyper_feature_selection',
-    version='0.1.0',
-    description='A Python Package to select optimal feature in Machine Learning Models',
-    url='https://github.com/HyperFeatureSelection/hyper-feature-selection',
-    license='MIT',
+    name="hyper_feature_selection",
+    version="0.1.0",
+    description="A Python Package to select optimal feature in Machine Learning Models",
+    url="https://github.com/HyperFeatureSelection/hyper-feature-selection",
+    license="MIT",
     install_requires=requirements,
     tests_require=test_requirements,
     packages=find_packages(),
-    install_requires=[
-    ],
     classifiers=[
         "Intended Audience :: Science/Research",
         "Intended Audience :: Developers",
-        'License :: OSI Approved :: MIT License',
+        "License :: OSI Approved :: MIT License",
         "Programming Language :: C",
         "Programming Language :: Python",
         "Topic :: Software Development",
